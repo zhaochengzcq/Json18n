@@ -327,8 +327,6 @@ Contributions welcome! Please:
 
 ## 🚀 Roadmap
 
-## 🚀 Roadmap
-
 The following items reflect possible future directions:
 
 - [ ] Batch file processing
@@ -336,7 +334,6 @@ The following items reflect possible future directions:
 - [ ] Web API for programmatic access
 
 Roadmap items are exploratory and subject to change.
-
 
 ---
 

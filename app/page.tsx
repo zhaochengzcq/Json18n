@@ -254,7 +254,7 @@ export default function App() {
   );
 
   const [missingKeys, setMissingKeys] = useState({});
-  const [targetLang, setTargetLang] = useState("fr");
+  const [targetLang, setTargetLang] = useState("zh");
   
   // Notification state with proper typing
   interface NotificationState {
@@ -289,9 +289,9 @@ export default function App() {
         const timer = setTimeout(() => {
           setNotification(null);
         }, 5500);
-        return () => clearTimeout(timer);
       }
       
+      // 继续计算 missingKeys，即使有不支持的类型
       const { missingKeys } = findMissingTranslations(sourceObj, targetObj);
       setMissingKeys(missingKeys);
     } else {
