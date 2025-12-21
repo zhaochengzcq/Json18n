@@ -270,11 +270,21 @@ pnpm lint     # Run ESLint
 4. Test with `MOCK_AI=true` first
 5. Update frontend `hooks/use-translate.ts` if needed
 
-## 📈 Analytics
+## 📈 Analytics (Optional)
 
-- **PostHog Integration** (optional): Track translation events
-- Events: `translation_attempt`, `translation_success`, `translation_failed`, `translation_error`
-- Environment: `NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_POSTHOG_HOST`
+This project supports client-side product analytics (e.g. PostHog or similar tools).
+
+Environment variables (example):
+
+```bash
+NEXT_PUBLIC_ANALYTICS_KEY=...
+NEXT_PUBLIC_ANALYTICS_HOST=...
+```
+
+Typical events include:
+- translation attempts
+- success / failure outcomes
+- error tracking
 
 ## 🐛 Troubleshooting
 
@@ -305,7 +315,6 @@ Contributions welcome! Please:
 
 ## 🔗 Links
 
-- **Documentation**: [.github/copilot-instructions.md](.github/copilot-instructions.md)
 - **Issue Tracker**: [GitHub Issues](https://github.com/yourusername/i18n-json-auto-translator/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/yourusername/i18n-json-auto-translator/discussions)
 
@@ -318,12 +327,16 @@ Contributions welcome! Please:
 
 ## 🚀 Roadmap
 
+## 🚀 Roadmap
+
+The following items reflect possible future directions:
+
 - [ ] Batch file processing
-- [ ] Import from translation management platforms (Crowdin, Lokalise)
 - [ ] Cost estimation before translation
-- [ ] Translation memory & glossary support
 - [ ] Web API for programmatic access
-- [ ] Self-hosted deployment guide
+
+Roadmap items are exploratory and subject to change.
+
 
 ---
 

@@ -272,11 +272,21 @@ pnpm lint     # 运行 ESLint
 4. 先用 `MOCK_AI=true` 测试
 5. 如需要，更新前端 `hooks/use-translate.ts`
 
-## 📈 分析统计
+## 📈 分析统计（可选）
 
-- **PostHog 集成**（可选）: 追踪翻译事件
-- 事件类型: `translation_attempt`、`translation_success`、`translation_failed`、`translation_error`
-- 环境变量: `NEXT_PUBLIC_POSTHOG_KEY`、`NEXT_PUBLIC_POSTHOG_HOST`
+该项目支持客户端产品分析（例如 PostHog 或类似工具）。
+
+环境变量示例：
+
+```bash
+NEXT_PUBLIC_ANALYTICS_KEY=...
+NEXT_PUBLIC_ANALYTICS_HOST=...
+```
+
+典型事件包括：
+- 翻译请求
+- 成功/失败结果
+- 错误追踪
 
 ## 🐛 故障排查
 
@@ -307,7 +317,6 @@ MIT 许可证 - 详见 LICENSE 文件
 
 ## 🔗 相关链接
 
-- **文档**: [.github/copilot-instructions.md](.github/copilot-instructions.md)
 - **问题追踪**: [GitHub Issues](https://github.com/yourusername/i18n-json-auto-translator/issues)
 - **讨论区**: [GitHub Discussions](https://github.com/yourusername/i18n-json-auto-translator/discussions)
 
@@ -320,12 +329,13 @@ MIT 许可证 - 详见 LICENSE 文件
 
 ## 🚀 开发计划
 
+以下项目反映了可能的未来方向：
+
 - [ ] 批量文件处理
-- [ ] 从翻译管理平台导入（Crowdin、Lokalise）
 - [ ] 翻译前成本估算
-- [ ] 翻译记忆库和术语库支持
 - [ ] Web API 以供程序化访问
-- [ ] 自主部署指南
+
+开发计划项目处于探索性阶段，可能会有变化。
 
 ---
 
