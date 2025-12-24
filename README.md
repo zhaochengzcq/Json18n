@@ -20,7 +20,15 @@ A Next.js web application that automates the translation of i18n JSON files usin
 - **🌍 Global Language Support**: 50+ languages including CJK (Chinese, Japanese, Korean)
 - **⚙️ Zero Complexity**: Preserves JSON structure and placeholder variables (`{name}`, `{{count}}`, `%s`)
 
-## 🚀 Quick Start
+## � Who is this for?
+
+✅ Developers maintaining JSON-based i18n (React / Vue / Next.js)
+✅ Teams who want AI translation without overwriting existing keys
+
+❌ Not a full TMS (Crowdin, Lokalise)
+❌ Not for non-JSON formats (yet)
+
+## �🚀 Quick Start
 
 ### Prerequisites
 
