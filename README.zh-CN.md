@@ -4,6 +4,8 @@
 
 一个 Next.js Web 应用，使用 AI（OpenAI、Google Gemini 或 Groq）自动化 i18n JSON 文件的翻译。在本地检测缺失的翻译键，仅将缺失内容发送给 LLM，安全地合并结果而不会覆盖现有值。
 
+**[🚀 在线演示](https://i18n-json-auto-translator-46h8mbp8z.vercel.app/)**
+
 ![Built with Next.js 16](https://img.shields.io/badge/Next.js-16.0-black?logo=next.js)
 ![React 19](https://img.shields.io/badge/React-19.2-blue?logo=react)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?logo=typescript)

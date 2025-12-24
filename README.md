@@ -4,6 +4,8 @@
 
 A Next.js web application that automates the translation of i18n JSON files using AI (OpenAI, Google Gemini, or Groq). Detects missing translation keys locally, sends only missing content to LLM, and safely merges results without overwriting existing values.
 
+**[🚀 Live Demo](https://i18n-json-auto-translator-46h8mbp8z.vercel.app/)**
+
 ![Built with Next.js 16](https://img.shields.io/badge/Next.js-16.0-black?logo=next.js)
 ![React 19](https://img.shields.io/badge/React-19.2-blue?logo=react)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?logo=typescript)
