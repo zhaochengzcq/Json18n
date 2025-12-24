@@ -18,7 +18,8 @@ import {
   ShieldCheck,
   Lock,
   Clock,
-  RotateCcw
+  RotateCcw,
+  Wand2
 } from "lucide-react";
 import {
   Tooltip,
@@ -37,6 +38,7 @@ import {
 import { useTranslate } from "@/hooks/use-translate";
 import { findMissingTranslations, type JsonObject, type JsonValue } from '@/lib/utils/json-diff';
 import { LANGUAGES } from '@/lib/constants/languages';
+import { JsonEditor, formatJson } from '@/components/monaco-editor';
 import posthog from 'posthog-js';
 
 // --- 🛠️ Utility Functions ---
@@ -109,16 +111,26 @@ const detectUnsupportedTypes = (obj: JsonValue, path = ""): string[] => {
 
 const CoverageIndicator = ({ total, missing }: { total: number; missing: number }) => {
   const current = Math.max(0, total - missing);
-  const percentage = total > 0 ? Math.round((current / total) * 100) : 100;
+  // Fix: If total is 0, percentage should be 0, not 100.
+  const percentage = total > 0 ? Math.round((current / total) * 100) : 0;
   
-  let colorClass = "text-emerald-500";
-  let strokeClass = "stroke-emerald-500";
-  if (percentage < 50) {
-    colorClass = "text-red-500";
-    strokeClass = "stroke-red-500";
-  } else if (percentage < 100) {
-    colorClass = "text-amber-500";
-    strokeClass = "stroke-amber-500";
+  // 当 source 为空时，显示灰色占位符
+  const isEmpty = total === 0;
+  
+  let colorClass = "text-slate-400"; // Default grey for 0%
+  let strokeClass = "stroke-slate-300";
+  
+  if (total > 0) {
+      if (percentage < 50) {
+        colorClass = "text-red-500";
+        strokeClass = "stroke-red-500";
+      } else if (percentage < 100) {
+        colorClass = "text-amber-500";
+        strokeClass = "stroke-amber-500";
+      } else {
+        colorClass = "text-emerald-500";
+        strokeClass = "stroke-emerald-500";
+      }
   }
 
   const radius = 16;
@@ -132,11 +144,11 @@ const CoverageIndicator = ({ total, missing }: { total: number; missing: number 
           <circle cx="18" cy="18" r={radius} stroke="currentColor" strokeWidth="3" fill="transparent" className="text-slate-200" />
           <circle cx="18" cy="18" r={radius} stroke="currentColor" strokeWidth="3" fill="transparent" strokeDasharray={circumference} strokeDashoffset={strokeDashoffset} strokeLinecap="round" className={`${strokeClass} transition-all duration-1000 ease-out`} />
         </svg>
-        <div className={`absolute text-[10px] font-bold ${colorClass}`}>{percentage}%</div>
+        <div className={`absolute text-[10px] font-bold ${colorClass}`}>{isEmpty ? "—" : `${percentage}%`}</div>
       </div>
       <div className="flex flex-col leading-none">
         <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Coverage</span>
-        <span className={`text-sm font-bold ${colorClass}`}>{current} <span className="text-slate-300">/</span> {total}</span>
+        <span className={`text-sm font-bold ${colorClass}`}>{isEmpty ? "—" : <>{current} <span className="text-slate-300">/</span> {total}</>}</span>
       </div>
     </div>
   );
@@ -556,7 +568,8 @@ export default function App() {
           </div>
           <div>
             <h1 className="text-lg font-bold text-slate-900 leading-tight">i18n Auto-Translator</h1>
-            <p className="text-xs text-slate-500 font-medium">Safe JSON Sync & Translate</p>
+            {/* ✨ Value Proposition: 直击痛点的人话 */}
+            <p className="text-xs text-slate-500 font-medium">Stop copy-pasting. Auto-translate missing keys instantly.</p>
           </div>
         </div>
         
@@ -587,13 +600,68 @@ export default function App() {
               <FileJson className="w-4 h-4 text-slate-400" />
               <span className="text-sm font-semibold text-slate-700">Source (Reference)</span>
             </div>
+            {/* Format 按钮 */}
+            <button
+              onClick={() => {
+                const result = formatJson(sourceCode);
+                if (result.success) {
+                  setSourceCode(result.result);
+                  setNotification({ type: "success", msg: "✨ JSON formatted" });
+                  scheduleNotificationClose('success', () => setNotification(null));
+                } else {
+                  setNotification({ type: "error", msg: `Format error: ${result.error}` });
+                  scheduleNotificationClose('error', () => setNotification(null));
+                }
+              }}
+              disabled={!sourceCode.trim()}
+              className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Format JSON (Ctrl+Shift+F)"
+            >
+              <Wand2 className="w-3 h-3" />
+              <span className="hidden sm:inline">Format</span>
+            </button>
           </div>
-          <textarea
-            className="flex-1 w-full p-4 font-mono text-sm resize-none focus:outline-none focus:bg-slate-50 transition-colors text-slate-600 leading-relaxed"
-            value={sourceCode}
-            onChange={(e) => setSourceCode(e.target.value)}
-            spellCheck={false}
-          />
+          {/* Monaco Editor - Source */}
+          <div className="flex-1 relative">
+            {!sourceCode ? (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10 bg-white/80">
+                <div className="space-y-3 text-left max-w-sm">
+                  <div className="flex items-start gap-3 group">
+                    <span className="flex items-center justify-center w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 text-xs font-bold shrink-0 mt-0.5">1</span>
+                    <div>
+                      <p className="text-sm font-medium text-slate-700">Paste source JSON here</p>
+                      <p className="text-xs text-slate-400">e.g. en.json</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <span className="flex items-center justify-center w-6 h-6 rounded-full bg-slate-100 text-slate-500 text-xs font-bold shrink-0 mt-0.5">2</span>
+                    <div>
+                      <p className="text-sm font-medium text-slate-500">Paste target JSON <span className="text-slate-400 font-normal">(optional)</span></p>
+                      <p className="text-xs text-slate-400">Right panel → Edit mode</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <span className="flex items-center justify-center w-6 h-6 rounded-full bg-slate-100 text-slate-500 text-xs font-bold shrink-0 mt-0.5">3</span>
+                    <div>
+                      <p className="text-sm font-medium text-slate-500">Click <Zap className="w-3.5 h-3.5 inline text-indigo-500" /> to translate</p>
+                      <p className="text-xs text-slate-400">Only missing keys</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <span className="flex items-center justify-center w-6 h-6 rounded-full bg-slate-100 text-slate-500 text-xs font-bold shrink-0 mt-0.5">4</span>
+                    <div>
+                      <p className="text-sm font-medium text-slate-500">Copy or download result</p>
+                      <p className="text-xs text-slate-400">Ready to use</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+            <JsonEditor
+              value={sourceCode}
+              onChange={setSourceCode}
+            />
+          </div>
         </div>
 
         {/* Center Actions */}
@@ -617,11 +685,12 @@ export default function App() {
                     ? "bg-amber-500" 
                     : "bg-slate-400"
                 }`}>
-                   {missingCount > 9 ? '9+' : missingCount}
+                    {missingCount > 9 ? '9+' : missingCount}
                 </span>
               )}
             </button>
-            <span className={`text-[10px] font-bold ${missingCount > 0 ? "text-indigo-600" : "text-slate-300"}`}>SYNC</span>
+            {/* ✨ Main Button Label: SYNC → Translate */}
+            <span className={`text-[9px] font-bold tracking-tight uppercase ${missingCount > 0 ? "text-indigo-600" : "text-slate-300"}`}>Translate</span>
 
             {/* Reset Target Button */}
             <button
@@ -636,10 +705,10 @@ export default function App() {
             </button>
             <span className="text-[9px] text-slate-500 font-medium">重置</span>
 
-            <div className="mt-3 flex flex-col items-center opacity-80 hover:opacity-100 transition-opacity cursor-help">
-                <ShieldCheck className="w-4 h-4 text-emerald-500" />
-                <span className="text-[9px] text-emerald-600 font-bold hidden md:block leading-none mt-0.5">SAFE<br/>MODE</span>
-                <span className="text-xs text-emerald-600 md:hidden ml-2 font-medium">Safe Mode: No Overwrite</span>
+            {/* ✨ Visible Safe Mode Badge */}
+            <div className="mt-3 flex flex-col items-center cursor-help bg-emerald-50 border border-emerald-100 px-1 py-1.5 rounded-md hover:bg-emerald-100 transition-colors">
+                <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                <span className="text-[8px] text-emerald-700 font-bold hidden md:block leading-none mt-1 text-center">SAFE<br/>MODE</span>
             </div>
           </div>
 
@@ -668,27 +737,50 @@ export default function App() {
               </span>
             </div>
             
-            <div className="flex bg-white rounded-lg border border-slate-200 p-0.5">
-                <button onClick={() => setViewMode('diff')} className={`px-3 py-1 text-xs font-medium rounded-md transition-all flex items-center gap-1 ${viewMode === 'diff' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-500 hover:text-slate-700'}`}>
-                    <Eye className="w-3 h-3" /> Diff
+            <div className="flex items-center gap-2">
+              {/* Format 按钮 - 仅在 Edit 模式显示 */}
+              {viewMode === 'code' && (
+                <button
+                  onClick={() => {
+                    const result = formatJson(targetCode);
+                    if (result.success) {
+                      setTargetCode(result.result);
+                      setNotification({ type: "success", msg: "✨ JSON formatted" });
+                      scheduleNotificationClose('success', () => setNotification(null));
+                    } else {
+                      setNotification({ type: "error", msg: `Format error: ${result.error}` });
+                      scheduleNotificationClose('error', () => setNotification(null));
+                    }
+                  }}
+                  disabled={!targetCode.trim() || targetCode === '{}'}
+                  className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Format JSON"
+                >
+                  <Wand2 className="w-3 h-3" />
+                  <span className="hidden sm:inline">Format</span>
                 </button>
-                <button onClick={() => setViewMode('code')} className={`px-3 py-1 text-xs font-medium rounded-md transition-all flex items-center gap-1 ${viewMode === 'code' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-500 hover:text-slate-700'}`}>
-                    <Edit3 className="w-3 h-3" /> Edit
-                </button>
+              )}
+              
+              <div className="flex bg-white rounded-lg border border-slate-200 p-0.5">
+                  <button onClick={() => setViewMode('diff')} className={`px-3 py-1 text-xs font-medium rounded-md transition-all flex items-center gap-1 ${viewMode === 'diff' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-500 hover:text-slate-700'}`}>
+                      <Eye className="w-3 h-3" /> Diff
+                  </button>
+                  <button onClick={() => setViewMode('code')} className={`px-3 py-1 text-xs font-medium rounded-md transition-all flex items-center gap-1 ${viewMode === 'code' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-500 hover:text-slate-700'}`}>
+                      <Edit3 className="w-3 h-3" /> Edit
+                  </button>
+              </div>
             </div>
           </div>
 
-          <div className="relative flex-1 group overflow-auto bg-white">
+          <div className="relative flex-1 group overflow-hidden bg-white">
             {viewMode === 'diff' ? (
-                <div className="p-4 min-h-full">
+                <div className="p-4 min-h-full overflow-auto h-full">
                     <JsonDiffViewer source={parseJson(sourceCode) || {}} target={parseJson(targetCode)} lastTranslatedKeys={lastTranslatedKeys} />
                 </div>
             ) : (
-                <textarea
-                  className={`flex-1 w-full h-full p-4 font-mono text-sm resize-none focus:outline-none transition-all leading-relaxed ${missingCount > 0 ? "bg-amber-50/10" : "bg-white"}`}
+                <JsonEditor
                   value={targetCode}
-                  onChange={(e) => setTargetCode(e.target.value)}
-                  spellCheck={false}
+                  onChange={setTargetCode}
                 />
             )}
 
