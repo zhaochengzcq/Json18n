@@ -19,7 +19,8 @@ import {
   Lock,
   Clock,
   RotateCcw,
-  Wand2
+  Wand2,
+  Upload
 } from "lucide-react";
 import {
   Tooltip,
@@ -280,12 +281,117 @@ export default function App() {
   
   const [viewMode, setViewMode] = useState("diff");
   const [lastTranslatedKeys, setLastTranslatedKeys] = useState<Set<string>>(new Set());
+  const [isDraggingSource, setIsDraggingSource] = useState(false);
+  const [isDraggingTarget, setIsDraggingTarget] = useState(false);
+  const sourceFileInputRef = useRef<HTMLInputElement>(null);
+  const targetFileInputRef = useRef<HTMLInputElement>(null);
   const prevTargetLangRef = useRef(targetLang);
   const prevTargetCodeRef = useRef(targetCode);
   const undoLangRef = useRef(targetLang); // 额外的 ref 保存撤销时的旧语言
   const isUndoingRef = useRef(false); // 标志：是否在撤销操作中
 
   const { translate, isTranslating, error: translateError } = useTranslate();
+
+  // 📁 文件上传处理
+  const handleFileUpload = useCallback((file: File, target: 'source' | 'target') => {
+    // 1. 文件类型检查
+    if (!file.name.endsWith('.json')) {
+      setNotification({ type: "error", msg: "Only .json files are supported" });
+      scheduleNotificationClose('error', () => setNotification(null));
+      return;
+    }
+    
+    // 2. 文件大小限制（1MB）
+    if (file.size > 1024 * 1024) {
+      setNotification({ type: "error", msg: "File too large. Max 1MB." });
+      scheduleNotificationClose('error', () => setNotification(null));
+      return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const content = e.target?.result as string;
+      
+      // 3. JSON 解析校验
+      try {
+        JSON.parse(content);
+      } catch {
+        setNotification({ type: "error", msg: "Invalid JSON format in file" });
+        scheduleNotificationClose('error', () => setNotification(null));
+        return;
+      }
+      
+      // 4. 自动格式化并填入
+      const formatted = formatJson(content);
+      const finalContent = formatted.success ? formatted.result : content;
+      
+      if (target === 'source') {
+        setSourceCode(finalContent);
+      } else {
+        setTargetCode(finalContent);
+      }
+      
+      setNotification({ type: "success", msg: `✨ ${file.name} loaded${formatted.success ? ' & formatted' : ''}` });
+      scheduleNotificationClose('success', () => setNotification(null));
+    };
+    
+    reader.onerror = () => {
+      setNotification({ type: "error", msg: "Failed to read file" });
+      scheduleNotificationClose('error', () => setNotification(null));
+    };
+    
+    reader.readAsText(file);
+  }, []);
+
+  // 拖拽事件处理
+  const handleDragOver = useCallback((e: React.DragEvent, target: 'source' | 'target') => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.dataTransfer) {
+      e.dataTransfer.dropEffect = 'copy';
+    }
+    if (target === 'source') {
+      setIsDraggingSource(true);
+    } else {
+      setIsDraggingTarget(true);
+    }
+  }, []);
+
+  const handleDragEnter = useCallback((e: React.DragEvent, target: 'source' | 'target') => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (target === 'source') {
+      setIsDraggingSource(true);
+    } else {
+      setIsDraggingTarget(true);
+    }
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent, target: 'source' | 'target') => {
+    e.preventDefault();
+    e.stopPropagation();
+    const related = e.relatedTarget as Node | null;
+    if (related && (e.currentTarget as Node).contains(related)) {
+      return;
+    }
+    if (target === 'source') {
+      setIsDraggingSource(false);
+    } else {
+      setIsDraggingTarget(false);
+    }
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent, target: 'source' | 'target') => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingSource(false);
+    setIsDraggingTarget(false);
+    
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      handleFileUpload(files[0], target);
+    }
+  }, [handleFileUpload]);
 
   const analyzeJson = useCallback(() => {
     const sourceObj = parseJson(sourceCode);
@@ -600,37 +706,78 @@ export default function App() {
               <FileJson className="w-4 h-4 text-slate-400" />
               <span className="text-sm font-semibold text-slate-700">Source (Reference)</span>
             </div>
-            {/* Format 按钮 */}
-            <button
-              onClick={() => {
-                const result = formatJson(sourceCode);
-                if (result.success) {
-                  setSourceCode(result.result);
-                  setNotification({ type: "success", msg: "✨ JSON formatted" });
-                  scheduleNotificationClose('success', () => setNotification(null));
-                } else {
-                  setNotification({ type: "error", msg: `Format error: ${result.error}` });
-                  scheduleNotificationClose('error', () => setNotification(null));
-                }
-              }}
-              disabled={!sourceCode.trim()}
-              className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Format JSON (Ctrl+Shift+F)"
-            >
-              <Wand2 className="w-3 h-3" />
-              <span className="hidden sm:inline">Format</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
+                {/* Upload 按钮 */}
+                <button
+                  onClick={() => sourceFileInputRef.current?.click()}
+                  className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-all"
+                  title="Upload JSON file"
+                >
+                  <Upload className="w-3 h-3" />
+                  <span className="hidden sm:inline">Upload</span>
+                </button>
+                <input
+                  ref={sourceFileInputRef}
+                  type="file"
+                  accept=".json"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      handleFileUpload(file, 'source');
+                      e.target.value = ''; // Reset to allow re-upload same file
+                    }
+                  }}
+                />
+                {/* Format 按钮 */}
+                <button
+                  onClick={() => {
+                    const result = formatJson(sourceCode);
+                    if (result.success) {
+                      setSourceCode(result.result);
+                      setNotification({ type: "success", msg: "✨ JSON formatted" });
+                      scheduleNotificationClose('success', () => setNotification(null));
+                    } else {
+                      setNotification({ type: "error", msg: `Format error: ${result.error}` });
+                      scheduleNotificationClose('error', () => setNotification(null));
+                    }
+                  }}
+                  disabled={!sourceCode.trim()}
+                  className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Format JSON (Ctrl+Shift+F)"
+                >
+                  <Wand2 className="w-3 h-3" />
+                  <span className="hidden sm:inline">Format</span>
+                </button>
+              </div>
+              <span className="hidden sm:inline text-[11px] text-slate-400">Tip: Upload or drag & drop JSON</span>
+            </div>
           </div>
           {/* Monaco Editor - Source */}
-          <div className="flex-1 relative">
+          <div 
+            className={`flex-1 relative transition-all ${isDraggingSource ? 'ring-2 ring-indigo-400 ring-inset bg-indigo-50/30' : ''}`}
+            onDragEnterCapture={(e) => handleDragEnter(e, 'source')}
+            onDragOverCapture={(e) => handleDragOver(e, 'source')}
+            onDragLeaveCapture={(e) => handleDragLeave(e, 'source')}
+            onDropCapture={(e) => handleDrop(e, 'source')}
+          >
+            {isDraggingSource && (
+              <div className="absolute inset-0 flex items-center justify-center bg-indigo-50/80 z-20 pointer-events-none">
+                <div className="flex flex-col items-center gap-2 text-indigo-600">
+                  <Upload className="w-8 h-8" />
+                  <span className="text-sm font-medium">Drop JSON file here</span>
+                </div>
+              </div>
+            )}
             {!sourceCode ? (
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10 bg-white/80">
                 <div className="space-y-3 text-left max-w-sm">
                   <div className="flex items-start gap-3 group">
                     <span className="flex items-center justify-center w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 text-xs font-bold shrink-0 mt-0.5">1</span>
                     <div>
-                      <p className="text-sm font-medium text-slate-700">Paste source JSON here</p>
-                      <p className="text-xs text-slate-400">e.g. en.json</p>
+                      <p className="text-sm font-medium text-slate-700">Upload or paste source JSON</p>
+                      <p className="text-xs text-slate-400">Drag & drop supported · e.g. en.json</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
@@ -658,6 +805,7 @@ export default function App() {
               </div>
             ) : null}
             <JsonEditor
+              key={sourceCode ? 'source-has-content' : 'source-empty'}
               value={sourceCode}
               onChange={setSourceCode}
             />
@@ -738,6 +886,32 @@ export default function App() {
             </div>
             
             <div className="flex items-center gap-2">
+              {/* Upload 按钮 - 仅在 Edit 模式显示 */}
+              {viewMode === 'code' && (
+                <>
+                  <button
+                    onClick={() => targetFileInputRef.current?.click()}
+                    className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-all"
+                    title="Upload JSON file"
+                  >
+                    <Upload className="w-3 h-3" />
+                    <span className="hidden sm:inline">Upload</span>
+                  </button>
+                  <input
+                    ref={targetFileInputRef}
+                    type="file"
+                    accept=".json"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        handleFileUpload(file, 'target');
+                        e.target.value = '';
+                      }
+                    }}
+                  />
+                </>
+              )}
               {/* Format 按钮 - 仅在 Edit 模式显示 */}
               {viewMode === 'code' && (
                 <button
@@ -760,6 +934,9 @@ export default function App() {
                   <span className="hidden sm:inline">Format</span>
                 </button>
               )}
+              {viewMode === 'code' && (
+                <span className="hidden md:inline text-[11px] text-slate-400">Tip: Drag & drop JSON</span>
+              )}
               
               <div className="flex bg-white rounded-lg border border-slate-200 p-0.5">
                   <button onClick={() => setViewMode('diff')} className={`px-3 py-1 text-xs font-medium rounded-md transition-all flex items-center gap-1 ${viewMode === 'diff' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-500 hover:text-slate-700'}`}>
@@ -772,13 +949,40 @@ export default function App() {
             </div>
           </div>
 
-          <div className="relative flex-1 group overflow-hidden bg-white">
+          <div 
+            className={`relative flex-1 group overflow-hidden bg-white transition-all ${isDraggingTarget && viewMode === 'code' ? 'ring-2 ring-indigo-400 ring-inset bg-indigo-50/30' : ''}`}
+            onDragEnterCapture={(e) => {
+              if (viewMode !== 'code') return;
+              handleDragEnter(e, 'target');
+            }}
+            onDragOverCapture={(e) => {
+              if (viewMode !== 'code') return;
+              handleDragOver(e, 'target');
+            }}
+            onDragLeaveCapture={(e) => {
+              if (viewMode !== 'code') return;
+              handleDragLeave(e, 'target');
+            }}
+            onDropCapture={(e) => {
+              if (viewMode !== 'code') return;
+              handleDrop(e, 'target');
+            }}
+          >
+            {isDraggingTarget && viewMode === 'code' && (
+              <div className="absolute inset-0 flex items-center justify-center bg-indigo-50/80 z-20 pointer-events-none">
+                <div className="flex flex-col items-center gap-2 text-indigo-600">
+                  <Upload className="w-8 h-8" />
+                  <span className="text-sm font-medium">Drop JSON file here</span>
+                </div>
+              </div>
+            )}
             {viewMode === 'diff' ? (
                 <div className="p-4 min-h-full overflow-auto h-full">
                     <JsonDiffViewer source={parseJson(sourceCode) || {}} target={parseJson(targetCode)} lastTranslatedKeys={lastTranslatedKeys} />
                 </div>
             ) : (
                 <JsonEditor
+                  key={targetCode === '{}' || targetCode === '{\n}' || !targetCode.trim() ? 'target-empty' : 'target-has-content'}
                   value={targetCode}
                   onChange={setTargetCode}
                 />
