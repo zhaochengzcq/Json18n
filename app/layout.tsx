@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { CSPostHogProvider } from "./providers";
+import { Providers } from "./providers";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -14,15 +14,15 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "i18n JSON Auto Translator | Translate Missing Keys Safely",
+  title: "Json18n | Translate Missing Keys Safely",
   description:
     "AI-powered tool to auto-translate missing i18n JSON keys. Detects diffs locally and safely merges results without overwriting existing translations.",
   openGraph: {
-    title: "i18n JSON Auto Translator",
+    title: "Json18n",
     description:
       "Auto-translate missing i18n JSON keys with AI. No overwrites. Safe merge.",
-    url: "https://i18n-json-auto-translator-46h8mbp8z.vercel.app/",
-    siteName: "i18n JSON Auto Translator",
+    url: "https://json18n.vercel.app/",
+    siteName: "Json18n",
     type: "website",
   },
 };
@@ -34,13 +34,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <CSPostHogProvider>
+      <Providers>
         <body
           className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         >
           {children}
         </body>
-      </CSPostHogProvider>
+      </Providers>
     </html>
   );
 }

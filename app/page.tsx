@@ -20,7 +20,8 @@ import {
   Clock,
   RotateCcw,
   Wand2,
-  Upload
+  Upload,
+  Github
 } from "lucide-react";
 import {
   Tooltip,
@@ -40,7 +41,6 @@ import { useTranslate } from "@/hooks/use-translate";
 import { findMissingTranslations, type JsonObject, type JsonValue } from '@/lib/utils/json-diff';
 import { LANGUAGES } from '@/lib/constants/languages';
 import { JsonEditor, formatJson } from '@/components/monaco-editor';
-import posthog from 'posthog-js';
 
 // --- 🛠️ Utility Functions ---
 
@@ -494,16 +494,7 @@ export default function App() {
     }
 
     const startTime = performance.now();
-    const inputLength = JSON.stringify(missingKeys).length;
     const missingKeyCount = Object.keys(missingKeys).length;
-
-    // 1️⃣ 埋点：翻译尝试
-    posthog.capture('translation_attempt', {
-      target_lang: targetLang,
-      missing_keys_count: missingKeyCount,
-      input_length: inputLength,
-      source_json_size: sourceCode.length,
-    });
     
     try {
       const sourceLangName = "English";
@@ -532,16 +523,6 @@ export default function App() {
         
         const newTranslatedKeys = new Set(Object.keys(missingKeys));
         setLastTranslatedKeys(newTranslatedKeys);
-
-        // 2️⃣ 埋点：翻译成功
-        posthog.capture('translation_success', {
-          target_lang: targetLang,
-          translated_keys_count: result.translatedCount,
-          duration_ms: Math.round((parseFloat(duration) * 1000)),
-          input_length: inputLength,
-          missing_keys_count: missingKeyCount,
-          estimated_tokens: Math.ceil(inputLength / 4), // 粗估 token 数（1 token ≈ 4 字符）
-        });
         
         setNotification({ 
             type: "report", 
@@ -552,31 +533,10 @@ export default function App() {
         
         scheduleNotificationClose('report', () => setNotification(null));
       } else {
-        // 3️⃣ 埋点：翻译失败
-        posthog.capture('translation_failed', {
-          target_lang: targetLang,
-          error_message: translateError || "Translation failed",
-          missing_keys_count: missingKeyCount,
-          input_length: inputLength,
-          duration_ms: Math.round(performance.now() - startTime),
-        });
-
         setNotification({ type: "error", msg: translateError || "Translation failed" });
         scheduleNotificationClose('error', () => setNotification(null));
       }
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : "Unknown error";
-      
-      // 3️⃣ 埋点：异常错误
-      posthog.capture('translation_error', {
-        target_lang: targetLang,
-        error_message: errorMsg,
-        error_type: error instanceof Error ? error.constructor.name : 'Unknown',
-        missing_keys_count: missingKeyCount,
-        input_length: inputLength,
-        duration_ms: Math.round(performance.now() - startTime),
-      });
-
       setNotification({ type: "error", msg: translateError || "Error translating" });
       scheduleNotificationClose('error', () => setNotification(null));
     }
@@ -668,7 +628,7 @@ export default function App() {
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans flex flex-col">
       {/* Header */}
       <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between shadow-sm sticky top-0 z-10">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <div className="bg-indigo-600 p-2 rounded-lg shadow-indigo-200 shadow-sm">
             <Languages className="w-5 h-5 text-white" />
           </div>
@@ -677,6 +637,15 @@ export default function App() {
             {/* ✨ Value Proposition: 直击痛点的人话 */}
             <p className="text-xs text-slate-500 font-medium">Stop copy-pasting. Auto-translate missing keys instantly.</p>
           </div>
+          <a
+            href="https://github.com/zhaochengzcq/Json18n"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="p-1.5 bg-slate-900 hover:bg-slate-700 rounded-md transition-colors"
+            title="View on GitHub"
+          >
+            <Github className="w-4 h-4 text-white" />
+          </a>
         </div>
         
         <div className="flex items-center gap-6">
@@ -698,7 +667,7 @@ export default function App() {
         </div>
       </header>
 
-      <main className="flex-1 flex flex-col md:flex-row overflow-hidden">
+      <main className="flex-1 flex flex-col md:flex-row">
         {/* Source Column */}
         <div className="flex-1 flex flex-col border-r border-slate-200 bg-white min-h-[400px]">
           <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
@@ -756,7 +725,7 @@ export default function App() {
           </div>
           {/* Monaco Editor - Source */}
           <div 
-            className={`flex-1 relative transition-all ${isDraggingSource ? 'ring-2 ring-indigo-400 ring-inset bg-indigo-50/30' : ''}`}
+            className={`flex-1 relative transition-all min-h-[300px] ${isDraggingSource ? 'ring-2 ring-indigo-400 ring-inset bg-indigo-50/30' : ''}`}
             onDragEnterCapture={(e) => handleDragEnter(e, 'source')}
             onDragOverCapture={(e) => handleDragOver(e, 'source')}
             onDragLeaveCapture={(e) => handleDragLeave(e, 'source')}
@@ -804,16 +773,16 @@ export default function App() {
                 </div>
               </div>
             ) : null}
-            <JsonEditor
-              key={sourceCode ? 'source-has-content' : 'source-empty'}
-              value={sourceCode}
-              onChange={setSourceCode}
-            />
+          <JsonEditor
+            key={sourceCode ? 'source-has-content' : 'source-empty'}
+            value={sourceCode}
+            onChange={setSourceCode}
+          />
           </div>
         </div>
 
-        {/* Center Actions */}
-        <div className="w-full md:w-16 bg-slate-50 border-r border-slate-200 flex md:flex-col items-center justify-center gap-4 p-2 z-20 group relative">
+        {/* Center Actions - sticky 保持在视窗中 */}
+        <div className="w-full md:w-16 shrink-0 bg-slate-50 border-r border-slate-200 flex md:flex-col items-center justify-center gap-4 p-2 z-20 group relative md:sticky md:top-20 md:self-start md:h-fit">
           <div className="hidden md:block w-px h-8 bg-slate-200"></div>
           
           <div className="flex flex-col items-center gap-1">
@@ -876,8 +845,8 @@ export default function App() {
         </div>
 
         {/* Target Column */}
-        <div className="flex-1 flex flex-col bg-white min-h-[400px]">
-          <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+        <div className="flex-1 flex flex-col bg-white min-h-0">
+          <div className="shrink-0 px-4 py-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
             <div className="flex items-center gap-2">
               {viewMode === 'diff' ? <Eye className="w-4 h-4 text-indigo-500" /> : <Code2 className="w-4 h-4 text-slate-400" />}
               <span className="text-sm font-semibold text-slate-700">
@@ -949,8 +918,9 @@ export default function App() {
             </div>
           </div>
 
+          {/* Target 内容区 */}
           <div 
-            className={`relative flex-1 group overflow-hidden bg-white transition-all ${isDraggingTarget && viewMode === 'code' ? 'ring-2 ring-indigo-400 ring-inset bg-indigo-50/30' : ''}`}
+            className={`flex-1 relative group bg-white transition-all min-h-[300px] ${isDraggingTarget && viewMode === 'code' ? 'ring-2 ring-indigo-400 ring-inset bg-indigo-50/30' : ''}`}
             onDragEnterCapture={(e) => {
               if (viewMode !== 'code') return;
               handleDragEnter(e, 'target');
@@ -977,7 +947,7 @@ export default function App() {
               </div>
             )}
             {viewMode === 'diff' ? (
-                <div className="p-4 min-h-full overflow-auto h-full">
+                <div className="p-4 min-h-full">
                     <JsonDiffViewer source={parseJson(sourceCode) || {}} target={parseJson(targetCode)} lastTranslatedKeys={lastTranslatedKeys} />
                 </div>
             ) : (
@@ -988,14 +958,14 @@ export default function App() {
                 />
             )}
 
-            <div className="absolute bottom-6 right-6 flex gap-2 z-10">
-              <button onClick={copyToClipboard} className="bg-white border border-slate-200 text-slate-600 hover:text-indigo-600 hover:border-indigo-200 shadow-sm px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all">
-                <Copy className="w-4 h-4" /> Copy JSON
-              </button>
-              <button onClick={handleDownload} className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-200 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all">
-                <Download className="w-4 h-4" /> Download
-              </button>
-            </div>
+              <div className="absolute bottom-6 right-6 flex gap-2 z-10">
+                <button onClick={copyToClipboard} className="bg-white border border-slate-200 text-slate-600 hover:text-indigo-600 hover:border-indigo-200 shadow-sm px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all">
+                  <Copy className="w-4 h-4" /> Copy JSON
+                </button>
+                <button onClick={handleDownload} className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-200 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all">
+                  <Download className="w-4 h-4" /> Download
+                </button>
+              </div>
           </div>
         </div>
       </main>
