@@ -1,14 +1,39 @@
-# i18n JSON Auto Translator
+# Json18n
 
-> AI-powered i18n JSON translation with intelligent diff detection & safe merge
+> A non-destructive i18n JSON completion tool  
+> ✔ Only adds missing keys  
+> ✔ Never overwrites existing translations  
+> ✔ Preserves structure & placeholders
 
 A Next.js web application that automates the translation of i18n JSON files using AI (OpenAI, Google Gemini, or Groq). Detects missing translation keys locally, sends only missing content to LLM, and safely merges results without overwriting existing values.
 
-**[🚀 Live Demo](https://i18n-json-auto-translator-46h8mbp8z.vercel.app/)**
+**[🚀 Live Demo](https://json18n.vercel.app/)**
 
 ![Built with Next.js 16](https://img.shields.io/badge/Next.js-16.0-black?logo=next.js)
 ![React 19](https://img.shields.io/badge/React-19.2-blue?logo=react)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?logo=typescript)
+
+## What this tool does
+
+✅ Detects missing i18n keys  
+✅ Translates only missing values  
+✅ Preserves existing translations  
+✅ Keeps placeholders & JSON structure intact  
+
+## What this tool does NOT do
+
+❌ It does NOT overwrite existing keys  
+❌ It does NOT re-translate full files  
+❌ It does NOT try to understand business context  
+❌ It is NOT a full TMS (Crowdin, Lokalise)
+
+## 🔒 Safety Guarantees
+
+1. **Whitelist Validation**: Only returns keys we sent
+2. **JSON Repair**: Fixes malformed LLM output
+3. **Structure Preservation**: Nested objects remain intact
+4. **No Overwrites**: Existing values are never modified
+5. **Error Isolation**: API key errors never leak to client
 
 ## ✨ Features
 
@@ -20,7 +45,12 @@ A Next.js web application that automates the translation of i18n JSON files usin
 - **🌍 Global Language Support**: 50+ languages including CJK (Chinese, Japanese, Korean)
 - **⚙️ Zero Complexity**: Preserves JSON structure and placeholder variables (`{name}`, `{{count}}`, `%s`)
 
-## 🚀 Quick Start
+## 👥 Who is this for?
+
+✅ Developers maintaining JSON-based i18n (React / Vue / Next.js)  
+✅ Teams who want AI translation without overwriting existing keys
+
+## �🚀 Quick Start
 
 ### Prerequisites
 
@@ -35,8 +65,8 @@ A Next.js web application that automates the translation of i18n JSON files usin
 
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/i18n-json-auto-translator.git
-cd i18n-json-auto-translator
+git clone https://github.com/zhaochengzcq/Json18n.git
+cd Json18n
 
 # Install dependencies
 pnpm install
@@ -53,10 +83,6 @@ cp .env.example .env.local
 OPENAI_API_KEY=sk-...
 GEMINI_API_KEY=...
 GROQ_API_KEY=gsk_...
-
-# Optional: Product Analytics
-NEXT_PUBLIC_POSTHOG_KEY=phc_...
-NEXT_PUBLIC_POSTHOG_HOST=https://us.posthog.com
 
 # Optional: Development (China region/VPN)
 HTTPS_PROXY=http://127.0.0.1:7890
@@ -133,6 +159,16 @@ pnpm start
 5. ✅ Variables `{name}` preserved
 6. ✅ JSON structure maintained
 
+## 📁 Format Support
+
+Json18n focuses on **safe key synchronization**, not file formats.
+
+- **JSON**: fully supported (stable)
+- **YAML / YML**: compatible in principle, not yet supported
+
+Formats without stable key-value semantics (e.g. Markdown, HTML)
+are intentionally not supported.
+
 ## 🌐 Supported Languages
 
 50+ languages including:
@@ -178,14 +214,6 @@ See [lib/constants/languages.ts](lib/constants/languages.ts) for complete list.
 - **app/api/translate/{gemini,gpt,grop}**: LLM integration routes
 - **hooks/use-translate.ts**: Frontend state management
 - **app/page.tsx**: UI with real-time visualization
-
-## 🔒 Safety Guarantees
-
-1. **Whitelist Validation**: Only returns keys we sent
-2. **JSON Repair**: Fixes malformed LLM output
-3. **Structure Preservation**: Nested objects remain intact
-4. **No Overwrites**: Existing values are never modified
-5. **Error Isolation**: API key errors never leak to client
 
 ## 🧪 Testing
 
@@ -235,7 +263,7 @@ pnpm dev
 ```
 ├── app/
 │   ├── page.tsx              # Main UI component
-│   ├── providers.tsx         # PostHog analytics
+│   ├── providers.tsx         # React context providers
 │   └── api/translate/
 │       ├── gemini/route.ts
 │       ├── gpt/route.ts
@@ -272,23 +300,7 @@ pnpm lint     # Run ESLint
 4. Test with `MOCK_AI=true` first
 5. Update frontend `hooks/use-translate.ts` if needed
 
-## 📈 Analytics (Optional)
-
-This project supports client-side product analytics (e.g. PostHog or similar tools).
-
-Environment variables (example):
-
-```bash
-NEXT_PUBLIC_ANALYTICS_KEY=...
-NEXT_PUBLIC_ANALYTICS_HOST=...
-```
-
-Typical events include:
-- translation attempts
-- success / failure outcomes
-- error tracking
-
-## 🐛 Troubleshooting
+##  Troubleshooting
 
 **Problem**: "API Error: Missing GROQ_API_KEY"  
 **Solution**: Check `.env.local` has `GROQ_API_KEY=gsk_...`
@@ -317,8 +329,8 @@ Contributions welcome! Please:
 
 ## 🔗 Links
 
-- **Issue Tracker**: [GitHub Issues](https://github.com/yourusername/i18n-json-auto-translator/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/i18n-json-auto-translator/discussions)
+- **Issue Tracker**: [GitHub Issues](https://github.com/zhaochengzcq/Json18n/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/zhaochengzcq/Json18n/discussions)
 
 ## 💡 Use Cases
 
@@ -341,4 +353,4 @@ Roadmap items are exploratory and subject to change.
 
 Built with ❤️ for developers who care about i18n quality.
 
-Questions? Open an [issue](https://github.com/yourusername/i18n-json-auto-translator/issues) or [discussion](https://github.com/yourusername/i18n-json-auto-translator/discussions).
+Questions? Open an [issue](https://github.com/zhaochengzcq/Json18n/issues) or [discussion](https://github.com/zhaochengzcq/Json18n/discussions).

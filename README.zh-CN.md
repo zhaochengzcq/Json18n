@@ -1,14 +1,39 @@
-# i18n JSON 自动翻译器
+# Json18n
 
-> AI 驱动的 i18n JSON 翻译，具有智能差异检测和安全合并
+> 非破坏性 i18n JSON 补全工具  
+> ✔ 仅添加缺失的键  
+> ✔ 永不覆盖现有翻译  
+> ✔ 保留结构和占位符
 
 一个 Next.js Web 应用，使用 AI（OpenAI、Google Gemini 或 Groq）自动化 i18n JSON 文件的翻译。在本地检测缺失的翻译键，仅将缺失内容发送给 LLM，安全地合并结果而不会覆盖现有值。
 
-**[🚀 在线演示](https://i18n-json-auto-translator-46h8mbp8z.vercel.app/)**
+**[🚀 在线演示](https://json18n.vercel.app/)**
 
 ![Built with Next.js 16](https://img.shields.io/badge/Next.js-16.0-black?logo=next.js)
 ![React 19](https://img.shields.io/badge/React-19.2-blue?logo=react)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?logo=typescript)
+
+## 这个工具能做什么
+
+✅ 检测缺失的 i18n 键  
+✅ 仅翻译缺失的值  
+✅ 保留现有翻译  
+✅ 保持占位符和 JSON 结构完整  
+
+## 这个工具不做什么
+
+❌ 不覆盖现有键  
+❌ 不重新翻译完整文件  
+❌ 不试图理解业务上下文  
+❌ 不是完整的 TMS（Crowdin、Lokalise）
+
+## 🔒 安全保证
+
+1. **白名单验证**: 仅返回我们发送的键
+2. **JSON 修复**: 修复格式错误的 LLM 输出
+3. **结构保护**: 嵌套对象保持完整
+4. **无覆盖保护**: 现有值永远不会被修改
+5. **错误隔离**: API Key 错误永远不会泄露给客户端
 
 ## ✨ 核心特性
 
@@ -20,7 +45,12 @@
 - **🌍 全球语言支持**: 50+ 种语言，包括中日韩
 - **⚙️ 零复杂度**: 保留 JSON 结构和占位符变量（`{name}`、`{{count}}`、`%s`）
 
-## 🚀 快速开始
+## 👥 适用人群
+
+✅ 维护基于 JSON 的 i18n 开发者（React / Vue / Next.js）  
+✅ 希望使用 AI 翻译但不覆盖现有键的团队
+
+## �🚀 快速开始
 
 ### 系统要求
 
@@ -35,8 +65,8 @@
 
 ```bash
 # 克隆仓库
-git clone https://github.com/yourusername/i18n-json-auto-translator.git
-cd i18n-json-auto-translator
+git clone https://github.com/zhaochengzcq/Json18n.git
+cd Json18n
 
 # 安装依赖
 pnpm install
@@ -53,10 +83,6 @@ cp .env.example .env.local
 OPENAI_API_KEY=sk-...
 GEMINI_API_KEY=...
 GROQ_API_KEY=gsk_...
-
-# 可选：产品分析
-NEXT_PUBLIC_POSTHOG_KEY=phc_...
-NEXT_PUBLIC_POSTHOG_HOST=https://us.posthog.com
 
 # 可选：开发环境（中国地区/VPN）
 HTTPS_PROXY=http://127.0.0.1:7890
@@ -135,6 +161,15 @@ pnpm start
 5. ✅ 变量 `{name}` 保留
 6. ✅ JSON 结构保持不变
 
+## 📁 格式支持
+
+Json18n 专注于**安全的键同步**，而非文件格式。
+
+- **JSON**: 完全支持（稳定）
+- **YAML / YML**: 原理兼容，暂未支持
+
+没有稳定键值语义的格式（如 Markdown、HTML）不在支持范围内。
+
 ## 🌐 支持的语言
 
 50+ 种语言，包括：
@@ -180,14 +215,6 @@ pnpm start
 - **app/api/translate/{gemini,gpt,grop}**: LLM 集成路由
 - **hooks/use-translate.ts**: 前端状态管理
 - **app/page.tsx**: 带实时可视化的 UI
-
-## 🔒 安全保证
-
-1. **白名单验证**: 仅返回我们发送的键
-2. **JSON 修复**: 修复格式错误的 LLM 输出
-3. **结构保护**: 嵌套对象保持完整
-4. **无覆盖保护**: 现有值永远不会被修改
-5. **错误隔离**: API Key 错误永远不会泄露给客户端
 
 ## 🧪 测试
 
@@ -237,7 +264,7 @@ pnpm dev
 ```
 ├── app/
 │   ├── page.tsx              # 主 UI 组件
-│   ├── providers.tsx         # PostHog 分析
+│   ├── providers.tsx         # React context providers
 │   └── api/translate/
 │       ├── gemini/route.ts
 │       ├── gpt/route.ts
@@ -274,23 +301,7 @@ pnpm lint     # 运行 ESLint
 4. 先用 `MOCK_AI=true` 测试
 5. 如需要，更新前端 `hooks/use-translate.ts`
 
-## 📈 分析统计（可选）
-
-该项目支持客户端产品分析（例如 PostHog 或类似工具）。
-
-环境变量示例：
-
-```bash
-NEXT_PUBLIC_ANALYTICS_KEY=...
-NEXT_PUBLIC_ANALYTICS_HOST=...
-```
-
-典型事件包括：
-- 翻译请求
-- 成功/失败结果
-- 错误追踪
-
-## 🐛 故障排查
+##  故障排查
 
 **问题**: "API Error: Missing GROQ_API_KEY"  
 **解决**: 检查 `.env.local` 是否包含 `GROQ_API_KEY=gsk_...`
@@ -319,8 +330,8 @@ MIT 许可证 - 详见 LICENSE 文件
 
 ## 🔗 相关链接
 
-- **问题追踪**: [GitHub Issues](https://github.com/yourusername/i18n-json-auto-translator/issues)
-- **讨论区**: [GitHub Discussions](https://github.com/yourusername/i18n-json-auto-translator/discussions)
+- **问题追踪**: [GitHub Issues](https://github.com/zhaochengzcq/Json18n/issues)
+- **讨论区**: [GitHub Discussions](https://github.com/zhaochengzcq/Json18n/discussions)
 
 ## 💡 应用场景
 
@@ -343,4 +354,4 @@ MIT 许可证 - 详见 LICENSE 文件
 
 用 ❤️ 为关心 i18n 质量的开发者打造。
 
-有问题？请开启一个 [Issue](https://github.com/yourusername/i18n-json-auto-translator/issues) 或 [Discussion](https://github.com/yourusername/i18n-json-auto-translator/discussions)。
+有问题？请开启一个 [Issue](https://github.com/zhaochengzcq/Json18n/issues) 或 [Discussion](https://github.com/zhaochengzcq/Json18n/discussions)。
